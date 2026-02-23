@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Test de Sostenibilidad</title>
+  <style>
+    :root{
+      --bg:#f4f6f8; --card:#fff; --text:#111827; --muted:#6b7280; --border:#d1d5db;
+      --shadow:0 2px 10px rgba(0,0,0,.08);
+      --ok-bg:#c8f7c5; --ok-border:#16a34a;
+      --bad-bg:#f7c5c5; --bad-border:#dc2626;
+      --btn:#111827; --btn-text:#fff; --btn-hover:#0b1220;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);padding:20px}
+    .container{max-width:980px;margin:0 auto}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+    h1{margin:0;font-size:24px;letter-spacing:.2px}
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{appearance:none;border:1px solid var(--btn);background:var(--btn);color:var(--btn-text);padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:800;box-shadow:var(--shadow);transition:transform .05s ease,background .2s ease}
+    .btn:hover{background:var(--btn-hover)}
+    .btn:active{transform:scale(.99)}
+    .pill{background:var(--card);border:1px solid var(--border);border-radius:999px;padding:8px 12px;box-shadow:var(--shadow);font-weight:800;color:var(--muted)}
+    .question{background:var(--card);border:1px solid var(--border);padding:18px;margin-bottom:14px;border-radius:14px;box-shadow:var(--shadow)}
+    .question h3{margin:0 0 10px 0;font-size:16px;line-height:1.35}
+    .answers{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+    .answers button{text-align:left;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#f9fafb;cursor:pointer;transition:background .2s ease,transform .05s ease;font-size:14px;line-height:1.35}
+    .answers button:hover{background:#eef2f7}
+    .answers button:active{transform:scale(.995)}
+    .answers button:disabled{cursor:not-allowed;opacity:.97}
+    .correct{background:var(--ok-bg)!important;border:2px solid var(--ok-border)!important}
+    .incorrect{background:var(--bad-bg)!important;border:2px solid var(--bad-border)!important}
+    .hint{margin-top:10px;font-weight:900;display:none}
+    .hint.ok{color:var(--ok-border)}
+    .hint.bad{color:var(--bad-border)}
+    .footer-note{margin-top:10px;font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Test de Sostenibilidad</h1>
+      <div class="controls">
+        <div class="pill" id="statusPill">Respondidas: 0 / 0</div>
+        <button class="btn" id="resetBtn" type="button">Reiniciar test</button>
+      </div>
+    </header>
+
+    <div id="quiz"></div>
+
+    <div class="footer-note">
+      Botón “Reiniciar test” vuelve a dejarlo todo como al principio.
+    </div>
+  </div>
+
+  <script>
+    // 90 preguntas del PDF, con TU clave de respuestas aplicada en orden.
+    // Nota: el "ab" del copia/pega se ha interpretado como "a" y "b" consecutivas para que cuadre 1:1 con 90 preguntas.
+    const questions = [
+      {
+        "question": "Los recursos naturales:",
+        "answers": {
+          "a": "Proporcionan materiales a los sistemas económicos.",
+          "b": "Son materiales que se extraen de la naturaleza y se utilizan en la producción.",
+          "c": "Son materiales que proceden de la actividad humana y resultan inservibles si no se transforman.",
+          "d": "Son dinero, fundamentalmente."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "La Agenda 2030:",
+        "answers": {
+          "a": "Es única, y su objetivo es guiar las acciones de las Naciones Unidas.",
+          "b": "Busca que la Unión Europea se vuelva neutral en emisiones de carbono para el 2030",
+          "c": "Se creó como iniciativa del Gobierno de España.",
+          "d": "Es adaptada por muchas Administraciones Públicas para guiar sus propias estrategias de desarrollo sostenible."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Una economía que está al servicio de la sociedad se dice que es:",
+        "answers": {
+          "a": "Viable.",
+          "b": "Sostenible.",
+          "c": "Equitativa.",
+          "d": "Soportable."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "Reducir la desigualdad de salarios y basar los ascensos en méritos objetivos, ¿en qué dimensión del desarrollo sostenible incluirías esta medida?:",
+        "answers": {
+          "a": "Social.",
+          "b": "Ecológica.",
+          "c": "Económica.",
+          "d": "No es una medida de desarrollo sostenible."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "El cambio climático supone para las empresas:",
+        "answers": {
+          "a": "Menor demanda de energía en los hogares.",
+          "b": "El aumento de las primas de sus seguros.",
+          "c": "Una mayor productividad de su plantilla.",
+          "d": "Un aumento en sus ingresos."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "El sistema biológico formado por una comunidad de seres vivos que habita un medio físico se denomina:",
+        "answers": {
+          "a": "Sistema humano.",
+          "b": "Ecosistema.",
+          "c": "Sociedad.",
+          "d": "Equilibrio."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Señale la opción correcta:",
+        "answers": {
+          "a": "La mayor frecuencia de sequías y el calentamiento global reducen el rendimiento de las cosechas, dificultando el cultivo de regadío e incrementando el riesgo de incendio.",
+          "b": "El cambio climático consiste en una alteración del sistema climático de la Tierra que está provocando una disminución de las temperaturas en el planeta.",
+          "c": "La mayoría de los edificios están diseñados para amortiguar las elevadas temperaturas que trae consigo el cambio climático.",
+          "d": "Los Objetivos del Desarrollo Sostenible (ODS) son 15 objetivos interconectados que deben lograrse para el año 2030 y que persiguen un futuro más sostenible para la humanidad."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "¿Cuál de las siguientes opciones es un efecto del calentamiento global?:",
+        "answers": {
+          "a": "Pérdida de biodiversidad.",
+          "b": "Contaminación del mar.",
+          "c": "Consumo abusivo.",
+          "d": "Incremento de la actividad económica."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "Para que los ecosistemas sean sostenibles, nuestra huella ecológica debe ser:",
+        "answers": {
+          "a": "Es independiente de la biocapacidad.",
+          "b": "Inferior a la biocapacidad.",
+          "c": "Basta con que sea reducida.",
+          "d": "Superior a la biocapacidad."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Una sociedad justa que no hace peligrar al ecosistema mundial es:",
+        "answers": {
+          "a": "Una sociedad viable.",
+          "b": "Una sociedad ecológica.",
+          "c": "Una sociedad soportable.",
+          "d": "Una sociedad equitativa."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "NO es una dimensión del desarrollo sostenible:",
+        "answers": {
+          "a": "La dimensión estética.",
+          "b": "La dimensión ecológica",
+          "c": "La dimensión social.",
+          "d": "La dimensión económica."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "Las medidas de mitigación buscan:",
+        "answers": {
+          "a": "Frenar o atenuar el cambio climático.",
+          "b": "Atender a las personas con problemas de salud causados por el cambio climático.",
+          "c": "Adaptar la empresa a la nueva situación climática.",
+          "d": "Reducir la actividad económica, en todo caso."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "Plantar bosques es una medida de:",
+        "answers": {
+          "a": "Desertización.",
+          "b": "Adaptación.",
+          "c": "Descarbonización.",
+          "d": "Desmaterialización."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "El mayor efecto medioambiental de la contaminación atmosférica es:",
+        "answers": {
+          "a": "El efecto invernadero.",
+          "b": "La contaminación del suelo.",
+          "c": "Las formas de producir que despilfarran recursos.",
+          "d": "La pérdida de biodiversidad."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "El cambio climático actual tiene su principal origen en:",
+        "answers": {
+          "a": "La actividad económica.",
+          "b": "La actividad del Sol.",
+          "c": "La capa de ozono.",
+          "d": "La contaminación del suelo."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "¿Cuál de los siguientes acuerdos internacionales están promovidos por la ONU para promover el desarrollo sostenible?",
+        "answers": {
+          "a": "El Protocolo de Kioto.",
+          "b": "El Pacto de París.",
+          "c": "Los Objetivos de Desarrollo Sostenible.",
+          "d": "Todas las respuestas anteriores son correctas."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Un/a empleado/a de una empresa sin responsabilidades directivas puede ayudar al logro de los ODS:",
+        "answers": {
+          "a": "Procurando aplicar en el puesto de trabajo principios similares a los del consumo responsable.",
+          "b": "Sin responsabilidades de dirección no se puede trabajar por los ODS.",
+          "c": "Esperando a que la dirección realice cambios que nos acerquen a los ODS.",
+          "d": "Basta con hacer lo mismo que las/os compañeras/os."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "¿Qué podríamos hacer en nuestra casa para contribuir a alcanzar el objetivo 12. Producción y consumo responsables?",
+        "answers": {
+          "a": "Mejorar el aislamiento de muros, ventanas y tejados para reducir la pérdida de calor en invierno o la entrada de calor en verano.",
+          "b": "Separar y reciclar la mayor cantidad posible de residuos.",
+          "c": "Poner el lavaplatos o la lavadora solo cuando estén llenos.",
+          "d": "Comprar bienes de comercio justo."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Señale la respuesta correcta respecto a los ODS:",
+        "answers": {
+          "a": "Cada ODS tiene asignados varios indicadores concretos y cada indicador tiene asignadas metas específicas.",
+          "b": "Cada uno de los 17 ODS se centra en los tres ámbitos del desarrollo sostenible.",
+          "c": "Cada ODS tiene asignadas una serie de metas que deben alcanzarse en 2050.",
+          "d": "Cada ODS tiene asignadas varias metas concretas y cada meta tiene asignados indicadores específicos."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "¿Cuál es la función de los indicadores de desempeño?",
+        "answers": {
+          "a": "Garantizar que el desarrollo económico sea sostenible.",
+          "b": "Medir nuestra distancia de las metas del desarrollo sostenible.",
+          "c": "Especificar situaciones de llegada concretas en relación con cada ODS.",
+          "d": "Guiar y coordinar las acciones de la humanidad para lograr el desarrollo sostenible."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "No es una iniciativa surgida en la UE:",
+        "answers": {
+          "a": "La Nueva Estrategia Industrial para Europa.",
+          "b": "El Pacto Verde Europeo.",
+          "c": "La Estrategia de Movilidad Sostenible.",
+          "d": "El Acuerdo de París."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Lo más recomendable para una empresa que quiere integrar los ODS en las estrategias y los planes de la empresa es implicarse en el logro de:",
+        "answers": {
+          "a": "Todos los ODS al mismo tiempo.",
+          "b": "Un ODS concreto.",
+          "c": "Un indicador de desempeño concreto.",
+          "d": "Una meta concreta."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Los ODS:",
+        "answers": {
+          "a": "Son objetivos de obligado cumplimiento por todas las personas, y la ONU invita a todas las Administraciones Públicas a sumarse a ellos.",
+          "b": "Son objetivos de obligado cumplimiento por las Administraciones Públicas, y la ONU invita a todas las personas y empresas a sumarse a ellos.",
+          "c": "Son objetivos de obligado cumplimiento por las empresas de todos los países, y la ONU invita a las Administraciones Públicas a sumarse a ellos.",
+          "d": "Son objetivos de obligado cumplimiento por las Administraciones Públicas, las empresas y las personas de todos los países."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "El objetivo 8. Trabajo decente y crecimiento económico, que implica promover el crecimiento económico sostenido, inclusivo y sostenible, el empleo pleno y productivo y el trabajo decente para todos. ¿A qué rama de actividad no estaría dirigido especialmente?",
+        "answers": {
+          "a": "Sanidad.",
+          "b": "Industria manufacturera.",
+          "c": "Administración y finanzas.",
+          "d": "Comercio."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "No es una dimensión como tal de los ODS:",
+        "answers": {
+          "a": "La ecológica.",
+          "b": "La social.",
+          "c": "La cultural.",
+          "d": "La económica."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "Una acción concreta llevada a cabo por una empresa para conseguir el objetivo 7 Energía asequible y no contaminante, sería:",
+        "answers": {
+          "a": "Usar productos de limpieza biodegradables.",
+          "b": "Reparar y mantener correctamente los equipos.",
+          "c": "Instalar placas solares.",
+          "d": "Instalar sistemas de control de flujo en grifos y cisternas."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "Desplazarse a pie ayuda especialmente a cumplir el ODS:",
+        "answers": {
+          "a": "11. Ciudades y comunidades sostenibles.",
+          "b": "15. Vida de ecosistemas terrestres.",
+          "c": "8. Trabajo decente y crecimiento económico.",
+          "d": "12. Producción y consumo responsables."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "¿Qué iniciativa de la UE busca lograr la neutralidad de emisiones de carbono? Señala la respuesta más completa:",
+        "answers": {
+          "a": "El Pacto Verde Europeo.",
+          "b": "La Estrategia de Movilidad Sostenible.",
+          "c": "La Nueva Estrategia Industrial para Europa.",
+          "d": "Todas las anteriores."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "Las iniciativas que la UE ha puesto en marcha para el logro de los ODS suponen ventajas para las empresas, como:",
+        "answers": {
+          "a": "Mayor posibilidad de recibir sanciones.",
+          "b": "Ayudas para mejorar la resiliencia.",
+          "c": "Normas medioambientales cada vez más estrictas.",
+          "d": "Reducción de impuestos."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "No es un ámbito del consumo responsable:",
+        "answers": {
+          "a": "Los bienes de consumo duradero.",
+          "b": "El transporte.",
+          "c": "El agua.",
+          "d": "La producción."
+        },
+        "correct": "d"
+      },
+
+      {
+        "question": "¿Qué aporta la Dirección de la empresa a la misma?",
+        "answers": {
+          "a": "Trabajo.",
+          "b": "Capital.",
+          "c": "Gestión.",
+          "d": "Financiación."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "¿Cuál de las siguientes opciones podría ser una barrera para la adopción de los aspectos ASG en una empresa?",
+        "answers": {
+          "a": "Equilibrio de intereses y valores.",
+          "b": "Desconocimiento.",
+          "c": "Limitación de recursos.",
+          "d": "Todas las respuestas son correctas."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Las normas NEIS han sido creadas por:",
+        "answers": {
+          "a": "El Gobierno de España.",
+          "b": "La Consejería de Medio Ambiente.",
+          "c": "La Unión Europea.",
+          "d": "Las Naciones Unidas."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "Los aspectos ASG relacionados con la ética empresarial son:",
+        "answers": {
+          "a": "Aspectos filosóficos.",
+          "b": "Aspectos sociales.",
+          "c": "Aspectos ambientales.",
+          "d": "Aspectos de gobernanza."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Un estado de sostenibilidad, o informe de impacto, organiza sus apartados principales según:",
+        "answers": {
+          "a": "Los aspectos ASG.",
+          "b": "Los ODS.",
+          "c": "Las líneas de negocio.",
+          "d": "Los grupos de interés."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "La integración de aspectos ASG en la empresa supone:",
+        "answers": {
+          "a": "Una mejor imagen de marca.",
+          "b": "Un peor acceso a financiación.",
+          "c": "Una peor retención del talento.",
+          "d": "Un menor beneficio a la larga."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "La mayor parte del empleo lo generan:",
+        "answers": {
+          "a": "Las entidades del tercer sector.",
+          "b": "Las administraciones.",
+          "c": "La banca.",
+          "d": "Las empresas."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "¿Cuál de los siguientes ODS puede estar vinculado a los tres aspectos ASG?",
+        "answers": {
+          "a": "ODS 6. Agua limpia y saneamiento.",
+          "b": "ODS 12. Producción y consumo responsable.",
+          "c": "ODS 13. Acción por el clima.",
+          "d": "ODS 5. Igualdad de género."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Sobre los grupos de interés, señala la afirmación falsa:",
+        "answers": {
+          "a": "Las decisiones de la empresa los influyen a ellos.",
+          "b": "Siempre son externos a la empresa.",
+          "c": "Son capaces de influir en las decisiones de la empresa.",
+          "d": "Son colectivos humanos."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "No es un aspecto ASG ambiental:",
+        "answers": {
+          "a": "La adaptación al cambio climático.",
+          "b": "La biodiversidad y los ecosistemas.",
+          "c": "El uso de recursos y la economía circular.",
+          "d": "La relación con las comunidades."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Los aspectos ASG relacionados con el trato a las personas internas y externas a la empresa son:",
+        "answers": {
+          "a": "Aspectos sociales.",
+          "b": "Aspectos de gobernanza.",
+          "c": "Aspectos ambientales.",
+          "d": "Aspectos financieros."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "El ODS 4. Educación de calidad, ¿en qué aspecto ASG estaría integrado?",
+        "answers": {
+          "a": "De gobernanza.",
+          "b": "Medioambiental.",
+          "c": "Social.",
+          "d": "Los ODS no están relacionados con los aspectos ASG."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "Es un grupo de interés interno:",
+        "answers": {
+          "a": "Las y los propietarios/as.",
+          "b": "Las y los clientas/es.",
+          "c": "La competencia.",
+          "d": "Las y los proveedores."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "El grupo de interés que persigue obtener de la empresa el mejor producto posible al menor precio posible son:",
+        "answers": {
+          "a": "Las y los propietarias/os.",
+          "b": "Las y los proveedores.",
+          "c": "Las y los clientas/es.",
+          "d": "La dirección."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "El informe de gestión que tienen que presentar las empresas de forma obligatoria, impuesto por la UE, tiene una periodicidad:",
+        "answers": {
+          "a": "Anual.",
+          "b": "Semestral.",
+          "c": "Bimensual.",
+          "d": "Trienal."
+        },
+        "correct": "a"
+      },
+
+      {
+        "question": "El ecodiseño busca:",
+        "answers": {
+          "a": "La integración de aspectos medioambientales en la distribución del producto.",
+          "b": "La integración de aspectos medioambientales en las decisiones de los consumidores.",
+          "c": "La implantación de procesos de producción más respetuosos con el medio ambiente.",
+          "d": "La integración de aspectos medioambientales en el diseño."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "¿Cuál de las siguientes opciones no corresponde a una de las 7R de la economía circular?",
+        "answers": {
+          "a": "Rediseñar.",
+          "b": "Relocalizar.",
+          "c": "Reutilizar.",
+          "d": "Reciclar."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Si conservamos el valor de los recursos y de los productos:",
+        "answers": {
+          "a": "Recuperaremos más envases.",
+          "b": "Se producirán más productos.",
+          "c": "Generaremos menos residuos.",
+          "d": "Necesitaremos más materiales."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "Todo proceso de ecodiseño debe comenzar por:",
+        "answers": {
+          "a": "Fijar objetivos o metas medioambientales.",
+          "b": "Identificar estrategias de mejora medioambiental del producto.",
+          "c": "Identificar las fases del ciclo de vida del producto.",
+          "d": "Reducir los recursos para producir los bienes."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "Para poder optimizar la vida útil de un producto, debe ser:",
+        "answers": {
+          "a": "Sencillo de reparar.",
+          "b": "Sencillo de desmontar.",
+          "c": "Sencillo de separar en piezas.",
+          "d": "Todas las respuestas anteriores son correctas."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Si utilizamos recursos no renovables para producir nuestro bien o servicio, nos exponemos al riesgo de:",
+        "answers": {
+          "a": "Problemas de salud.",
+          "b": "Escasez de recursos y precios cada vez mayores.",
+          "c": "Menores oportunidades de expansión a otros mercados.",
+          "d": "Problemas de seguridad en el trabajo."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "¿Cuál de las siguientes afirmaciones es correcta?",
+        "answers": {
+          "a": "La innovación en ética y sostenibilidad proyecta una imagen positiva de la empresa hacia su clientela y, con ello, la lealtad a la marca.",
+          "b": "La eficiencia consiste en obtener menos con más.",
+          "c": "Las prácticas de economía lineal se alinean con la normativa actual y la previsible en un futuro en materia de medio ambiente.",
+          "d": "La economía lineal es más factible si la relación de la empresa con los proveedores es más estable."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "NO es una opción de implantación de la producción limpia:",
+        "answers": {
+          "a": "Los cambios en el diseño.",
+          "b": "Los cambios en la demanda.",
+          "c": "Los cambios en el producto.",
+          "d": "Los cambios en los materiales."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Dos procesos asociados a la economía circular son:",
+        "answers": {
+          "a": "La descentralización y la concentración.",
+          "b": "La deslocalización y la externalización.",
+          "c": "La descarbonización y la deslocalización.",
+          "d": "La desmaterialización y la descarbonización."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "En el modelo lineal de producción y consumo, cada fase del ciclo de vida del producto se relaciona directamente:",
+        "answers": {
+          "a": "Solo con la inmediata anterior.",
+          "b": "Con la inmediatamente anterior y la inmediatamente posterior.",
+          "c": "Solo con la inmediata posterior.",
+          "d": "Con todas las demás al mismo tiempo."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "La fase de la evaluación de producción limpia en la que se diseña y ejecuta un plan de acción es la de:",
+        "answers": {
+          "a": "Generación de opciones.",
+          "b": "Recogida y análisis de datos.",
+          "c": "Evaluación y control.",
+          "d": "Implementación."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "¿Cuál de las siguientes opciones es correcta para implantar la producción limpia?",
+        "answers": {
+          "a": "Reducción de materiales peligrosos.",
+          "b": "Tecnología que reduzcan el consumo de energía.",
+          "c": "Rediseño de productos existentes.",
+          "d": "Todas las respuestas anteriores son correctas."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "La primera fase en un proceso de evaluación de producción limpia es:",
+        "answers": {
+          "a": "Análisis de la viabilidad.",
+          "b": "La generación de opciones.",
+          "c": "La implementación.",
+          "d": "La recogida y análisis de datos."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "La fase del ciclo de vida del producto en la que el producto es puesto al servicio del consumidor se conoce como:",
+        "answers": {
+          "a": "Diseño.",
+          "b": "Consumo.",
+          "c": "Producción.",
+          "d": "Distribución."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Una forma de usar materiales de impacto reducido es:",
+        "answers": {
+          "a": "Usar materiales de proveedores locales.",
+          "b": "Uso de materiales no reciclados.",
+          "c": "Reducir el número de procesos en la producción.",
+          "d": "Añadir multifuncionalidad al producto."
+        },
+        "correct": "a"
+      },
+
+      {
+        "question": "¿Qué certificado es este?",
+        "answers": {
+          "a": "El logotipo de producción ecológica de la UE.",
+          "b": "El certificado de pesca sostenible.",
+          "c": "El certificado FSC de gestión forestal.",
+          "d": "La Etiqueta Ecológica Europea (EEE)."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "Las organizaciones normalizadoras:",
+        "answers": {
+          "a": "Son empresas acreditadas para extender certificados de sostenibilidad, entre otros.",
+          "b": "Califican inversiones y empresas en función del grado de cumplimiento de los aspectos ASG.",
+          "c": "Crean las leyes que rigen la actividad de las empresas y las personas, y toman decisiones de gobierno y gestión diaria.",
+          "d": "Crean normas especializadas que regulan actividades y procesos concretos."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Sobre la Etiqueta Ecológica Europea (EEE), señala la afirmación FALSA:",
+        "answers": {
+          "a": "Es necesario pagar una tasa para gestionar su solicitud.",
+          "b": "Es gestionado directamente por la UE.",
+          "c": "Es una etiqueta de tipo I.",
+          "d": "Requiere que la empresa redacte un informe sobre sus actividades."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Los índices de inversión socialmente responsable (ISR) con integración de aspectos ASG:",
+        "answers": {
+          "a": "Consideran los aspectos ASG, solamente.",
+          "b": "Incluyen títulos de empresas que cumplen con los criterios ASG de acuerdo con los estándares fijados por las agencias que han creado y gestionan esos índices.",
+          "c": "Son listados que excluyen a empresas que se dedican a actividades abiertamente incompatibles con los ODS y la sostenibilidad.",
+          "d": "Incluyen solo a empresas que se dedican a actividades especialmente vinculadas con la sostenibilidad."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Un dato o un conjunto de datos que permite medir el rendimiento de una actividad en relación con un objetivo o una meta es:",
+        "answers": {
+          "a": "Un indicador de desempeño.",
+          "b": "Un sistema de gestión ambiental.",
+          "c": "Un objetivo.",
+          "d": "Una meta."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "¿Qué tipo de certificados de sostenibilidad medioambiental reconocidos en normas ISO no requieren de entidades externas a la empresa que los utiliza?",
+        "answers": {
+          "a": "Los de tipo I (ecoetiquetas).",
+          "b": "Los de tipo III (declaraciones ambientales de producto).",
+          "c": "Los no cubiertos por normas ISO.",
+          "d": "Los de tipo II (autodeclaraciones ambientales)."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "De los siguientes agentes, ¿cuál es una entidad certificadora?",
+        "answers": {
+          "a": "Standard & Poor’s.",
+          "b": "ISO.",
+          "c": "UNE.",
+          "d": "AENOR."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "En la fijación de objetivos para la empresa, es importante tomar como punto de partida:",
+        "answers": {
+          "a": "Comprobar los medios disponibles para cumplirlos.",
+          "b": "Seleccionar objetivos relevantes.",
+          "c": "El análisis de cada proceso.",
+          "d": "Fijar un horizonte temporal."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "¿Qué son los bonos?",
+        "answers": {
+          "a": "Representan una pequeña parte del capital de una sociedad limitada, y dan derecho a participar en sus beneficios, cuando los hay.",
+          "b": "Son documentos de deuda, emitidos en su mayoría por el Estado, que se compromete a pagar a su portador cantidades de dinero fijas en unos plazos determinados.",
+          "c": "Representan una pequeña parte del capital de una sociedad anónima, y dan derecho a participar en sus beneficios, cuando los hay.",
+          "d": "Se componen de una gran cantidad de títulos de procedencia variada (acciones de muchas empresas, bonos de muchos Estados, etc.), lo que permite reducir el riesgo de la inversión."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "¿Qué certifica el siguiente logo?",
+        "answers": {
+          "a": "Ninguna respuesta es correcta.",
+          "b": "El producto utiliza madera procedente de bosques sostenibles.",
+          "c": "La cantidad de energía necesaria para mantener adecuadamente climatizado un edificio.",
+          "d": "El pescado ha sido capturado mediante prácticas de pesca sostenible."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "¿Cuál es el orden de las fases de la evaluación del desempeño ambiental?",
+        "answers": {
+          "a": "Planear, hacer, verificar y actuar.",
+          "b": "Planear, actuar, verificar y hacer.",
+          "c": "Planear, hacer, actuar y verificar.",
+          "d": "Actuar, planear, hacer y verificar."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "¿Cuál de las afirmaciones siguientes NO se refiere a la inversión financiera?",
+        "answers": {
+          "a": "Tiene relación con la inversión productiva.",
+          "b": "En su análisis se tiene en cuenta la rentabilidad, el riesgo y la liquidez.",
+          "c": "Consiste en producir un bien o servicio para venderlo en el mercado.",
+          "d": "Se refleja en unos documentos llamados títulos."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "¿Cuál de los siguientes índices es un indicador de ISR?",
+        "answers": {
+          "a": "Ibex 35.",
+          "b": "Índice FTSE 100.",
+          "c": "Índice de exclusión.",
+          "d": "S&P 500."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "El objetivo de la evaluación del desempeño medioambiental es:",
+        "answers": {
+          "a": "Lograr la mejora continua en los procesos y en la empresa.",
+          "b": "Implantar indicadores clave de desempeño en la empresa.",
+          "c": "Encontrar culpables de que los planes no se cumplan.",
+          "d": "Establecer fórmulas que indiquen cómo calcular los indicadores."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "Selecciona la respuesta más completa. El análisis de inversiones socialmente responsables (ISR) valora:",
+        "answers": {
+          "a": "Los aspectos ASG.",
+          "b": "Todo lo anterior.",
+          "c": "El riesgo.",
+          "d": "La rentabilidad."
+        },
+        "correct": "b"
+      },
+
+      {
+        "question": "Indica cuál de las siguientes normas es española:",
+        "answers": {
+          "a": "Directiva 2022/2464 de Informes de Sostenibilidad Empresarial (CSRD).",
+          "b": "NEIS.",
+          "c": "Global Reporting Initiative (GRI).",
+          "d": "Ley de Información no Financiera y Diversidad."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "El plan de sostenibilidad:",
+        "answers": {
+          "a": "Es un documento obligatorio para las empresas.",
+          "b": "Sirve para guiar las acciones de la organización en materia de sostenibilidad.",
+          "c": "Da cuenta de las actuaciones realizadas el año anterior en materia de sostenibilidad.",
+          "d": "Es un documento de planificación a corto plazo (un año o menos)."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "El plan de sostenibilidad es (señala la respuesta más completa):",
+        "answers": {
+          "a": "Una herramienta de planificación.",
+          "b": "Una herramienta de planificación y comunicación.",
+          "c": "Una herramienta de planificación y evaluación.",
+          "d": "Una herramienta de comunicación."
+        },
+        "correct": "a"
+      },
+      {
+        "question": "El plan de sostenibilidad:",
+        "answers": {
+          "a": "Obligatorio para grandes empresas",
+          "b": "Obligatorio para grandes empresas (voluntario para el resto), anualmente",
+          "c": "Voluntario, para periodos de 3 a 5 años",
+          "d": "Voluntario, para periodos de 2 a 3 años"
+        },
+        "correct": "c"
+      },
+      {
+        "question": "El primer apartado de un plan de sostenibilidad debe ser:",
+        "answers": {
+          "a": "El diseño de objetivos y acciones concretas.",
+          "b": "La identificación de impactos y dependencias.",
+          "c": "La identificación de los ODS clave.",
+          "d": "El análisis del contexto de la organización."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "En el procedimiento administrativo de evaluación de impacto ambiental no interviene:",
+        "answers": {
+          "a": "La autoridad medioambiental.",
+          "b": "La entidad que promueve una obra, proyecto o acción de cierta importancia.",
+          "c": "El documento llamado informe medioambiental.",
+          "d": "El documento llamado estudio de impacto ambiental."
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Para una empresa agrícola, la mayor frecuencia de sequías es un asunto:",
+        "answers": {
+          "a": "Con materialidad de impacto.",
+          "b": "Sin materialidad para la empresa.",
+          "c": "Con materialidad financiera.",
+          "d": "Con doble materialidad."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "Para que un asunto tenga prioridad de primer nivel en la matriz de materialidad y relevancia, debe tener:",
+        "answers": {
+          "a": "Elevada relevancia y elevada factibilidad.",
+          "b": "Elevada relevancia para la dirección de la organización, solamente.",
+          "c": "Elevada relevancia para los grupos de interés internos y externos.",
+          "d": "Doble materialidad."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "El documento que da cuenta a la autoridad de la evolución de determinados aspectos ASG, se denomina:",
+        "answers": {
+          "a": "Plan de sostenibilidad",
+          "b": "Estado no financiero",
+          "c": "Informe de impacto ambiental",
+          "d": "Informe de sostenibilidad"
+        },
+        "correct": "b"
+      },
+      {
+        "question": "A diferencia del estado de sostenibilidad, el informe o memoria de sostenibilidad:",
+        "answers": {
+          "a": "Informa sobre el desempeño de la organización en materia de sostenibilidad.",
+          "b": "Tiene gran utilidad como herramienta de comunicación de las políticas de sostenibilidad.",
+          "c": "Se refiere a un periodo de tiempo definido (un año).",
+          "d": "Habla solamente de los logros de la organización en materia de sostenibilidad."
+        },
+        "correct": "c"
+      },
+      {
+        "question": "¿Qué apartado no se incluye en un plan de sostenibilidad?",
+        "answers": {
+          "a": "Diseño de objetivos y líneas estratégicas",
+          "b": "Gestión de objetivos",
+          "c": "Diseño del plan de comunicación",
+          "d": "Identificación de los ODS clave"
+        },
+        "correct": "c"
+      },
+      {
+        "question": "¿Cuál de las siguientes técnicas es utilizada para el análisis del contexto de la organización de la estructura del plan de sostenibilidad?",
+        "answers": {
+          "a": "Normas NEIS",
+          "b": "Mapeo de grupos de interés",
+          "c": "Modelos de planificación estratégica",
+          "d": "Análisis de doble materialidad"
+        },
+        "correct": "b"
+      },
+      {
+        "question": "Indica cuál de los siguientes estándares de información no financiera es más antiguo:",
+        "answers": {
+          "a": "Normas Europeas de Información sobre Sostenibilidad (NEIS).",
+          "b": "Ley de Información no Financiera y Diversidad.",
+          "c": "Directiva 2022/2464 de Informes de Sostenibilidad Empresarial (CSRD).",
+          "d": "Global Reporting Initiative (GRI)."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "La declaración de impacto ambiental es redactada por:",
+        "answers": {
+          "a": "La empresa que construye efectivamente el proyecto.",
+          "b": "La oficina de prensa de la empresa.",
+          "c": "La empresa promotora del proyecto.",
+          "d": "La autoridad medioambiental."
+        },
+        "correct": "d"
+      },
+      {
+        "question": "En relación con el estándar GRI, señala la afirmación falsa:",
+        "answers": {
+          "a": "Es en realidad una familia de estándares.",
+          "b": "La mayoría de las grandes empresas lo utiliza.",
+          "c": "Fue creado por la Unión Europea.",
+          "d": "Su primera versión es del año 2000."
+        },
+        "correct": "c"
+      }
+    ];
+
+    const quizContainer = document.getElementById("quiz");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusPill = document.getElementById("statusPill");
+
+    let answeredCount = 0;
+
+    function updateStatus() {
+      statusPill.textContent = `Respondidas: ${answeredCount} / ${questions.length}`;
+    }
+
+    function createQuestionCard(q, index) {
+      const questionDiv = document.createElement("div");
+      questionDiv.className = "question";
+
+      const title = document.createElement("h3");
+      title.textContent = `${index + 1}. ${q.question}`;
+      questionDiv.appendChild(title);
+
+      const answersDiv = document.createElement("div");
+      answersDiv.className = "answers";
+
+      const hint = document.createElement("div");
+      hint.className = "hint";
+
+      for (const key of Object.keys(q.answers)) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.dataset.key = key;
+        btn.textContent = `${key.toUpperCase()}. ${q.answers[key]}`;
+        btn.addEventListener("click", () => handleAnswerClick(q, answersDiv, btn, hint));
+        answersDiv.appendChild(btn);
+      }
+
+      questionDiv.appendChild(answersDiv);
+      questionDiv.appendChild(hint);
+      return questionDiv;
+    }
+
+    function handleAnswerClick(q, answersDiv, clickedButton, hintEl) {
+      const allButtons = Array.from(answersDiv.querySelectorAll("button"));
+      if (allButtons.every(b => b.disabled)) return;
+
+      allButtons.forEach(btn => btn.disabled = true);
+
+      const selectedKey = clickedButton.dataset.key;
+
+      if (selectedKey === q.correct) {
+        clickedButton.classList.add("correct");
+        clickedButton.textContent += " ✅";
+        hintEl.textContent = "Correcta ✅";
+        hintEl.classList.add("ok");
+        hintEl.classList.remove("bad");
+      } else {
+        clickedButton.classList.add("incorrect");
+        clickedButton.textContent += " ❌";
+
+        const correctBtn = allButtons.find(btn => btn.dataset.key === q.correct);
+        if (correctBtn) {
+          correctBtn.classList.add("correct");
+          correctBtn.textContent += " ✅";
+        }
+
+        hintEl.textContent = "Incorrecta ❌";
+        hintEl.classList.add("bad");
+        hintEl.classList.remove("ok");
+      }
+
+      hintEl.style.display = "block";
+      answeredCount += 1;
+      updateStatus();
+    }
+
+    function renderQuiz() {
+      quizContainer.innerHTML = "";
+      answeredCount = 0;
+      updateStatus();
+
+      questions.forEach((q, index) => {
+        quizContainer.appendChild(createQuestionCard(q, index));
+      });
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    resetBtn.addEventListener("click", renderQuiz);
+    renderQuiz();
+  </script>
+</body>
+</html>
